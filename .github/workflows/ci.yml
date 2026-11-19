@@ -1,0 +1,48 @@
+name: CI - Kiem tra loi du an
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  syntax-and-build-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Kiem tra cu phap toan bo file .js
+        run: |
+          echo "Dang kiem tra cu phap..."
+          find . -name "*.js" \
+            -not -path "./node_modules/*" \
+            -print0 | xargs -0 -n1 node -c
+          echo "✅ Khong co loi cu phap."
+
+      - name: Kiem tra package.json hop le
+        run: node -e "require('./package.json'); console.log('✅ package.json hop le.')"
+
+      - name: Kiem tra server khoi dong duoc (khong can MongoDB that)
+        run: |
+          node -e "
+            require('./models/User');
+            require('./models/Product');
+            require('./models/DigitalItem');
+            require('./models/Transaction');
+            require('./models/Message');
+            require('./middleware/authMiddleware');
+            console.log('✅ Tat ca module load thanh cong.');
+          "
+
+      - name: Build Docker image (kiem tra Dockerfile hop le)
+        run: docker build -t digital-store-pro:ci-test .
